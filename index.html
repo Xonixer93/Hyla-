@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hyla Organizer Konfigurator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <div id="root" class="max-w-4xl mx-auto p-6"></div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const MODULES = [
+        { id: "duesenhalter", name: "Düsenhalter", icon: "🧩", price: 6.9 },
+        { id: "flaschenhalter", name: "Flaschenhalter", icon: "🧴", price: 5.9 },
+        { id: "schlauchhalter", name: "Schlauchhalter", icon: "🔗", price: 6.0 },
+        { id: "box", name: "Box", icon: "📦", price: 4.5 }
+      ];
+      const COLORS = ["Schwarz", "Weiß", "Anthrazit"];
+      let selectedModule = null;
+      let selectedColor = COLORS[0];
+      let grid = Array(9).fill(null);
+
+      const root = document.getElementById("root");
+      const render = () => {
+        const total = grid.reduce((sum, mod) => {
+          const m = MODULES.find(x => x.id === mod);
+          return sum + (m ? m.price : 0);
+        }, 0);
+
+        root.innerHTML = \`
+          <h1 class="text-2xl font-bold mb-4">🧩 Hyla Organizer Konfigurator</h1>
+          <div class="flex flex-col md:flex-row gap-8">
+            <div>
+              <h2 class="font-semibold mb-2">Module</h2>
+              <div class="grid grid-cols-2 gap-2 mb-4">
+                \${MODULES.map(m => \`
+                  <button class="border p-2 rounded \${selectedModule === m.id ? 'bg-gray-300' : ''}"
+                          onclick="window.selectModule('\${m.id}')">\${m.icon} \${m.name}</button>
+                \`).join('')}
+              </div>
+            </div>
+            <div>
+              <h2 class="font-semibold mb-2">Konfiguration</h2>
+              <div class="grid grid-cols-3 gap-2 mb-4">
+                \${grid.map((mod, i) => \`
+                  <div class="w-20 h-20 border flex items-center justify-center bg-white cursor-pointer hover:bg-gray-100"
+                       onclick="window.placeModule(\${i})">
+                    \${mod ? MODULES.find(m => m.id === mod).icon : ""}
+                  </div>
+                \`).join('')}
+              </div>
+              <label class="block mb-2">Farbe wählen:
+                <select onchange="window.selectColor(this.value)" class="ml-2 border p-1">
+                  \${COLORS.map(c => \`<option value="\${c}" \${selectedColor === c ? 'selected' : ''}>\${c}</option>\`).join('')}
+                </select>
+              </label>
+              <p class="mb-4"><strong>Gesamtpreis:</strong> €\${total.toFixed(2)}</p>
+              <button onclick="window.downloadPDF()" class="bg-blue-600 text-white px-4 py-2 rounded">
+                PDF erstellen mit Etsy-Link
+              </button>
+              <div class="mt-6">
+                <p class="mb-2">Jetzt auf Etsy bestellen:</p>
+                <img src="qr-code.png" alt="Etsy QR-Code" width="160" />
+                <p class="text-sm mt-2">oder unter:<br/><a href="https://www.etsy.com/de/listing/123456789/hyla-organizer-konfigurator" target="_blank" class="text-blue-600 underline">etsy.com/de/listing/123456789</a></p>
+              </div>
+            </div>
+          </div>
+        \`;
+      };
+
+      window.selectModule = id => { selectedModule = id; render(); };
+      window.placeModule = i => { if (selectedModule) grid[i] = selectedModule; render(); };
+      window.selectColor = val => { selectedColor = val; render(); };
+      window.downloadPDF = () => {
+        const doc = new jspdf.jsPDF();
+        doc.setFontSize(16);
+        doc.text("Bestellübersicht – Hyla Organizer", 10, 20);
+        doc.setFontSize(12);
+        doc.text("Farbe: " + selectedColor, 10, 30);
+        let y = 40;
+        grid.forEach((mod, i) => {
+          if (mod) {
+            const m = MODULES.find(x => x.id === mod);
+            doc.text(\`\${i + 1}. \${m.name} - EUR \${m.price.toFixed(2)}\`, 10, y);
+            y += 10;
+          }
+        });
+        const total = grid.reduce((sum, mod) => {
+          const m = MODULES.find(x => x.id === mod);
+          return sum + (m ? m.price : 0);
+        }, 0);
+        doc.text("Gesamtpreis: EUR " + total.toFixed(2), 10, y + 10);
+        doc.text("Jetzt bestellen: etsy.com/de/listing/123456789", 10, y + 25);
+        doc.save("organizer_bestellung.pdf");
+      };
+
+      render();
+    });
+  </script>
+</body>
+</html>
